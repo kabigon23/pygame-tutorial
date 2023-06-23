@@ -1,6 +1,6 @@
 import pygame, sys
 from pygame.locals import *
-import random
+import random, time
 
 pygame.init()
 FPS_SEC = 60
@@ -14,9 +14,10 @@ WHITE = (255, 255, 255)
 
 WIDTH = 400
 HEIGHT = 600
+SPEED = 5
 
 DISPLAYSURF = pygame.display.set_mode((WIDTH, HEIGHT)) # 디스플레이 좌측상단 꼭지점이 (0,0) 우측하단 꼭지점이 (최대, 최대)
-DISPLAYSURF.fill(WHITE)
+
 pygame.display.set_caption("Game")
 
 class Enemy(pygame.sprite.Sprite):
@@ -27,7 +28,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.center = (random.randint(40, WIDTH-40), 0)
 
     def move(self):
-        self.rect.move_ip(0, random.randint(5,15))
+        self.rect.move_ip(0, SPEED)
         if self.rect.bottom > 600:
             self.rect.top = 0
             self.rect.center = (random.randint(30, 370), 0)
@@ -52,25 +53,35 @@ class Player(pygame.sprite.Sprite):
                 self.rect.move_ip(5, 0)
     def draw(self, surface):
         surface.blit(self.image, self.rect)
-
+# 스프라이트 설정
 P1 = Player()
 E1 = Enemy()
-E2 = Enemy()
+
+# 스프라이트 그룹핑
+enemies = pygame.sprite.Group()
+enemies.add(E1)
+all_sprites = pygame.sprite.Group()
+all_sprites.add(P1)
+all_sprites.add(E1)
+
+# 새로운 유저이벤트 생성
+INC_SPEED = pygame.USEREVENT + 1
+pygame.time.set_timer(INC_SPEED, 1000)
 
 # 게임 루프 시작
 while True:
     for event in pygame.event.get():
+        if event.type == INC_SPEED:
+            SPEED += 2
         if event.type == pygame.QUIT: # 종료 조건
             pygame.quit()
             sys.exit()
 
     P1.update()
     E1.move()
-    E2.move()
     DISPLAYSURF.fill(WHITE)
     P1.draw(DISPLAYSURF)
     E1.draw(DISPLAYSURF)
-    E2.draw(DISPLAYSURF)
 
     pygame.display.update() # 이 함수가 호출되기 전까진 화면 변화가 일어나지 않는다.
     FPS.tick(FPS_SEC)
