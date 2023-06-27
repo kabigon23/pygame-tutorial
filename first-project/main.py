@@ -24,7 +24,7 @@ async def main():
     WIDTH = 400
     HEIGHT = 600
     SPEED = 1
-    MONEY = 100
+    MONEY = 10000
     LEVEL = 2000
     rates = 0
     PM = BLACK
@@ -194,18 +194,18 @@ async def main():
         # 충돌 상황 설정
         if pygame.sprite.spritecollideany(P1, yangbongs):
             if Y1.size == "short":
-                MONEY += 2
+                MONEY *= 1.05
             elif Y1.size == "medium":
-                MONEY += 5
+                MONEY *= 1.1
             elif Y1.size == "long":
-                MONEY += 10
+                MONEY *= 1.25
             else:
-                MONEY += 30
+                MONEY *= 1.5
 
-            rates = MONEY - 100
+            rates = MONEY / 100 - 100
             collided_yangbong = pygame.sprite.spritecollideany(P1, yangbongs)
             collided_yangbong.kill()
-            if rates >= 300:
+            if rates >= 1000:
                         
                 DISPLAYSURF.fill(RED)
                 DISPLAYSURF.blit(game_success, (15,250))
@@ -223,18 +223,18 @@ async def main():
 
         if pygame.sprite.spritecollideany(P1, embongs):
             if E1.size == "short":
-                MONEY -= 2
+                MONEY *= 0.95
             elif E1.size == "medium":
-                MONEY -= 5
+                MONEY *= 0.9
             elif E1.size == "long":
-                MONEY -= 10
+                MONEY *= 0.75
             else:
-                MONEY -= 30
+                MONEY *= 0.5
 
-            rates = MONEY - 100
+            rates = MONEY / 100 - 100
             collided_embong = pygame.sprite.spritecollideany(P1, embongs)
             collided_embong.kill()
-            if rates <= -100:                     
+            if rates <= -95:                     
                 DISPLAYSURF.fill(RED)
                 DISPLAYSURF.blit(game_over_text, (30,250))
                 
