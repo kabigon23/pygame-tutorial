@@ -39,6 +39,15 @@ async def main():
     start_text = font_small.render("Press Enter to Start", True, WHITE)
     game_success = font.render("You are rich!", True, YELLOW)
     game_over_text = font.render("Game Over", True, BLACK)
+    effect_text_p5 = font_small.render("+5%", True, RED)
+    effect_text_p10 = font_small.render("+10%", True, RED)
+    effect_text_p25 = font_small.render("+25%", True, RED)
+    effect_text_p50 = font_small.render("+50%", True, RED)
+    effect_text_m5 = font_small.render("-5%", True, BLUE)
+    effect_text_m10 = font_small.render("-10%", True, BLUE)
+    effect_text_m25 = font_small.render("-25%", True, BLUE)
+    effect_text_m50 = font_small.render("-50%", True, BLUE)
+
 
     # 픽셀아트 만들기
     red_stick = pygame.Surface((12,32))
@@ -77,6 +86,40 @@ async def main():
 
     pygame.display.set_caption("Game")
 
+    class effect(pygame.sprite.Sprite):
+        def __init__(self, effect, pos_x, pos_y):
+            super().__init__()
+            if effect == "p5":
+                self.image = effect_text_p5
+            elif effect == "p10":
+                self.image = effect_text_p10
+            elif effect == "p25":
+                self.image = effect_text_p25
+            elif effect == "p50":
+                self.image = effect_text_p50
+            elif effect == "m5":
+                self.image = effect_text_m5
+            elif effect == "m10":
+                self.image = effect_text_m10
+            elif effect == "m25":
+                self.image = effect_text_m25
+            else:
+                self.image = effect_text_m50
+                    
+            self.rect = self.image.get_rect()
+            self.rect.center = (pos_x+30, pos_y+30)
+        
+        def move(self):
+            self.rect.move_ip(0, -3)
+            if self.rect.bottom < 450:
+                self.kill()
+        
+        def draw(self, surface):
+            surface.blit(self.image, self.rect)
+
+
+            
+
     class Yangbong(pygame.sprite.Sprite):
         def __init__(self, size):
             super().__init__()
@@ -88,6 +131,9 @@ async def main():
         def move(self):
             self.rect.move_ip(0, SPEED)
             if self.rect.bottom > 600:
+                rand_size = size_list[random.randint(0,3)]
+                self.size = rand_size
+                self.image = pygame.image.load(f"red_stick_{rand_size}.png")
                 self.rect.top = 0
                 self.rect.center = (random.randint(10, 390), 0)
 
@@ -105,6 +151,9 @@ async def main():
         def move(self):
             self.rect.move_ip(0, SPEED)
             if self.rect.bottom > 600:
+                rand_size = size_list[random.randint(0,3)]
+                self.size = rand_size
+                self.image = pygame.image.load(f"blue_stick_{rand_size}.png")
                 self.rect.top = 0
                 self.rect.center = (random.randint(10, 390), 0)
 
@@ -131,8 +180,8 @@ async def main():
             surface.blit(self.image, self.rect)
     # 스프라이트 설정
     P1 = Player()
-    Y1 = Yangbong(size_list[random.randint(0,2)])
-    E1 = Embong(size_list[random.randint(0,2)])
+    Y1 = Yangbong(size_list[random.randint(0,3)])
+    E1 = Embong(size_list[random.randint(0,3)])
 
     # 스프라이트 그룹핑
     yangbongs = pygame.sprite.Group()
@@ -181,8 +230,8 @@ async def main():
             PLUS = ""
 
         DISPLAYSURF.fill(WHITE)
-        current_money = font_small.render(f"ACCOUNT: ${str(MONEY)}", True, BLACK)
-        current_rates = font_small.render(f"{PLUS}{rates}%", True, PM)
+        current_money = font_small.render(f"ACCOUNT: ${str(round(MONEY, 2))}", True, BLACK)
+        current_rates = font_small.render(f"{PLUS}{round(rates, 2)}%", True, PM)
         DISPLAYSURF.blit(current_money, (10,10))
         DISPLAYSURF.blit(current_rates, (10,30))
 
@@ -192,18 +241,26 @@ async def main():
             entity.move()
         
         # 충돌 상황 설정
-        if pygame.sprite.spritecollideany(P1, yangbongs):
-            if Y1.size == "short":
+        collided_yangbong = pygame.sprite.spritecollideany(P1, yangbongs)
+        if collided_yangbong:
+            if collided_yangbong.size == "short":
                 MONEY *= 1.05
-            elif Y1.size == "medium":
+                P_EFFECT = effect("p5", collided_yangbong.rect.x, collided_yangbong.rect.y)
+                all_sprites.add(P_EFFECT)
+            elif collided_yangbong.size == "medium":
                 MONEY *= 1.1
-            elif Y1.size == "long":
+                P_EFFECT = effect("p10", collided_yangbong.rect.x, collided_yangbong.rect.y)
+                all_sprites.add(P_EFFECT)
+            elif collided_yangbong.size == "long":
                 MONEY *= 1.25
+                P_EFFECT = effect("p25", collided_yangbong.rect.x, collided_yangbong.rect.y)
+                all_sprites.add(P_EFFECT)
             else:
                 MONEY *= 1.5
+                P_EFFECT = effect("p50", collided_yangbong.rect.x, collided_yangbong.rect.y)
+                all_sprites.add(P_EFFECT)
 
             rates = MONEY / 100 - 100
-            collided_yangbong = pygame.sprite.spritecollideany(P1, yangbongs)
             collided_yangbong.kill()
             if rates >= 1000:
                         
@@ -220,19 +277,27 @@ async def main():
             all_sprites.add(Y1)
             yangbongs.add(Y1)
 
-
-        if pygame.sprite.spritecollideany(P1, embongs):
+        collided_embong = pygame.sprite.spritecollideany(P1, embongs)
+        if collided_embong:
             if E1.size == "short":
                 MONEY *= 0.95
+                M_EFFECT = effect("m5", collided_embong.rect.x, collided_embong.rect.y)
+                all_sprites.add(M_EFFECT)
             elif E1.size == "medium":
                 MONEY *= 0.9
+                M_EFFECT = effect("m10", collided_embong.rect.x, collided_embong.rect.y)
+                all_sprites.add(M_EFFECT)
             elif E1.size == "long":
                 MONEY *= 0.75
+                M_EFFECT = effect("m25", collided_embong.rect.x, collided_embong.rect.y)
+                all_sprites.add(M_EFFECT)
             else:
                 MONEY *= 0.5
+                M_EFFECT = effect("m50", collided_embong.rect.x, collided_embong.rect.y)
+                all_sprites.add(M_EFFECT)
 
             rates = MONEY / 100 - 100
-            collided_embong = pygame.sprite.spritecollideany(P1, embongs)
+            
             collided_embong.kill()
             if rates <= -95:                     
                 DISPLAYSURF.fill(RED)
