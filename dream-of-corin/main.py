@@ -20,7 +20,10 @@ async def main():
     WHITE = (255, 255, 255)
     YELLOW = (245, 245, 66)
 
-
+    # 게임 상태 
+    GAME_STATE_PLAYING = 0
+    GAME_STATE_GAME_OVER = 1
+    GAME_STATE_WIN = 2
 
     # 게임 변수
     WIDTH = 360
@@ -29,6 +32,7 @@ async def main():
     MONEY = 10000
     LEVEL = 2000
     rates = 0
+    game_state = GAME_STATE_PLAYING
     PM = BLACK
     PLUS = ""
     waiting = True
@@ -46,7 +50,7 @@ async def main():
 
     # 폰트 설정
     font = pygame.font.SysFont("Verdana", 40)
-    font_small = pygame.font.SysFont("Verdana", 20)
+    font_small = pygame.font.SysFont("Verdana", 25)
 
     start_text = font_small.render("Press Enter to Start", True, WHITE)
     game_success = font.render("You are rich!", True, YELLOW)
@@ -179,7 +183,7 @@ async def main():
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super().__init__()
-            self.image = pygame.image.load("normal.png")
+            self.image = pygame.image.load("normal_face.png")
             self.rect = self.image.get_rect()
             self.rect.center = (WIDTH / 2,550)
 
@@ -218,216 +222,270 @@ async def main():
     INC_SPEED = pygame.USEREVENT + 1
     pygame.time.set_timer(INC_SPEED, LEVEL)
 
-    # 시작화면 생성
-    DISPLAYSURF.fill(BLACK)
-    DISPLAYSURF.blit(start_text, ((WIDTH - start_text.get_width()) // 2 , (HEIGHT - start_text.get_height()) // 2))
+    # # 시작화면 생성
+    # DISPLAYSURF.fill(BLACK)
+    # DISPLAYSURF.blit(start_text, ((WIDTH - start_text.get_width()) // 2 , (HEIGHT - start_text.get_height()) // 2))
 
     # 게임 루프 시작
     while True:
-        pygame.display.update()
-        while waiting:
+        if game_state == GAME_STATE_PLAYING:
+        # pygame.display.update()
+        # while waiting:
+        #     for event in pygame.event.get():
+        #         if event.type == QUIT:
+        #             pygame.quit()
+        #             sys.exit()
+        #         elif event.type == KEYDOWN:
+        #             if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+        #                 waiting = False
+        #         elif event.type == MOUSEBUTTONDOWN:
+        #             if event.button == 1:
+        #                 waiting = False
+
+
+
+            for event in pygame.event.get():
+                if event.type == INC_SPEED:
+                    if SPEED < 40:
+                        SPEED += 1.5
+                if event.type == pygame.QUIT: # 종료 조건
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        if event.pos:
+                            x,y = event.pos
+                            if x <= WIDTH / 2 and y > 600:
+                                mouse_pressed_left = True
+                            elif x > WIDTH / 2 and y > 600:
+                                mouse_pressed_right = True
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        mouse_pressed_left = False
+                        mouse_pressed_right = False
+
+            if P1.rect.left > 0 and mouse_pressed_left:
+                P1.rect.move_ip(-5,0)
+            if P1.rect.right < WIDTH and mouse_pressed_right:
+                P1.rect.move_ip(5,0)            
+
+            if rates > 0:
+                PM = RED
+                PLUS = "+"
+            elif rates == 0:
+                PM = BLACK
+                PLUS = ""
+            else:
+                PM = BLUE
+                PLUS = ""
+
+            DISPLAYSURF.fill(WHITE)
+            current_money = font_small.render(f"ACCOUNT: ${str(round(MONEY, 2))}", True, BLACK)
+            current_rates = font_small.render(f"{PLUS}{round(rates, 2)}%", True, PM)
+            DISPLAYSURF.blit(current_money, (10,10))
+            DISPLAYSURF.blit(current_rates, (10,30))
+
+            # 모든 객체 그려주기
+            for entity in all_sprites:
+                DISPLAYSURF.blit(entity.image, entity.rect)
+                entity.move()
+            
+            # 충돌 상황 설정
+            collided_yangbong = pygame.sprite.spritecollideany(P1, yangbongs)
+            if collided_yangbong:
+                if collided_yangbong.size == "short":
+                    MONEY *= 1.05
+                    P_EFFECT = effect("p5", collided_yangbong.rect.x, collided_yangbong.rect.y)
+                    all_sprites.add(P_EFFECT)
+                elif collided_yangbong.size == "medium":
+                    MONEY *= 1.1
+                    P_EFFECT = effect("p10", collided_yangbong.rect.x, collided_yangbong.rect.y)
+                    all_sprites.add(P_EFFECT)
+                elif collided_yangbong.size == "long":
+                    MONEY *= 1.25
+                    P_EFFECT = effect("p25", collided_yangbong.rect.x, collided_yangbong.rect.y)
+                    all_sprites.add(P_EFFECT)
+                else:
+                    MONEY *= 1.5
+                    P_EFFECT = effect("p50", collided_yangbong.rect.x, collided_yangbong.rect.y)
+                    all_sprites.add(P_EFFECT)
+
+                rates = MONEY / 100 - 100
+                collided_yangbong.kill()
+                Y1 = Yangbong(size_list[random.randint(0,3)])
+                all_sprites.add(Y1)
+                yangbongs.add(Y1)
+                if rates >= 1000:
+                    game_state = GAME_STATE_WIN
+                    for entity in all_sprites:
+                        entity.kill() 
+
+                    
+                    # pygame.quit()
+                    # sys.exit()
+                    # waiting = True
+                    # while waiting:
+                    #     for event in pygame.event.get():
+                    #         if event.type == QUIT:
+                    #             pygame.quit()
+                    #             sys.exit()
+                    #         elif event.type == MOUSEBUTTONDOWN:
+                    #             if event.button == 1:
+                    #                 waiting = False
+                    #                 SPEED = 1
+                    #                 MONEY = 10000
+                    #                 rates = 0             
+                    #                 all_sprites.add(P1)
+                    #                 all_sprites.add(Y1)
+                    #                 all_sprites.add(E1)
+                    #                 yangbongs.add(Y1)
+                    #                 embongs.add(E1)
+                    #         elif event.type == KEYDOWN:
+                    #             if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                    #                 waiting = False
+                    #                 SPEED = 1
+                    #                 MONEY = 10000
+                    #                 rates = 0             
+                    #                 all_sprites.add(P1)
+                    #                 all_sprites.add(Y1)
+                    #                 all_sprites.add(E1)
+                    #                 yangbongs.add(Y1)
+                    #                 embongs.add(E1)           
+
+
+            collided_embong = pygame.sprite.spritecollideany(P1, embongs)
+            if collided_embong:
+                if E1.size == "short":
+                    MONEY *= 0.95
+                    M_EFFECT = effect("m5", collided_embong.rect.x, collided_embong.rect.y)
+                    all_sprites.add(M_EFFECT)
+                elif E1.size == "medium":
+                    MONEY *= 0.9
+                    M_EFFECT = effect("m10", collided_embong.rect.x, collided_embong.rect.y)
+                    all_sprites.add(M_EFFECT)
+                elif E1.size == "long":
+                    MONEY *= 0.75
+                    M_EFFECT = effect("m25", collided_embong.rect.x, collided_embong.rect.y)
+                    all_sprites.add(M_EFFECT)
+                else:
+                    MONEY *= 0.5
+                    M_EFFECT = effect("m50", collided_embong.rect.x, collided_embong.rect.y)
+                    all_sprites.add(M_EFFECT)
+
+                rates = MONEY / 100 - 100
+                
+                collided_embong.kill()
+                E1 = Embong(size_list[random.randint(0,3)])
+                all_sprites.add(E1)
+                embongs.add(E1)
+                if rates <= -95:  
+                    for entity in all_sprites:
+                        entity.kill()
+                    game_state = GAME_STATE_GAME_OVER
+
+                    
+                    # pygame.quit()
+                    # sys.exit()
+                    # waiting = True
+                    # while waiting:
+                    #     for event in pygame.event.get():
+                    #         if event.type == QUIT:
+                    #             pygame.quit()
+                    #             sys.exit()
+                    #         elif event.type == MOUSEBUTTONDOWN:
+                    #             if event.button == 1:
+                    #                 waiting = False
+                    #                 SPEED = 1
+                    #                 MONEY = 10000
+                    #                 rates = 0             
+                    #                 all_sprites.add(P1)
+                    #                 all_sprites.add(Y1)
+                    #                 all_sprites.add(E1)
+                    #                 yangbongs.add(Y1)
+                    #                 embongs.add(E1)
+
+                    #         elif event.type == KEYDOWN:
+                    #             if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                    #                 waiting = False
+
+            # 왼쪽 구역 그리기 (검은색 배경에 흰색 L)
+            pygame.draw.rect(DISPLAYSURF, BLACK, (0, divider_y, l_width, divider_height))
+            pygame.draw.rect(DISPLAYSURF, WHITE, (0, divider_y, l_width, divider_thickness))
+            l_text_rect = l_text.get_rect(center=(l_width // 2, divider_y + divider_height // 2))
+            DISPLAYSURF.blit(l_text, l_text_rect)
+
+            # 오른쪽 구역 그리기 (검은색 배경에 흰색 R)
+            r_x = l_width + divider_thickness
+            r_width = WIDTH - r_x
+            pygame.draw.rect(DISPLAYSURF, BLACK, (r_x, divider_y, r_width, divider_height))
+            pygame.draw.rect(DISPLAYSURF, WHITE, (r_x, divider_y, r_width, divider_thickness))
+            r_text_rect = r_text.get_rect(center=(r_x + r_width // 2, divider_y + divider_height // 2))
+            DISPLAYSURF.blit(r_text, r_text_rect)
+
+        elif game_state == GAME_STATE_GAME_OVER:
+            DISPLAYSURF.fill(WHITE)                        
+            DISPLAYSURF.blit(game_over_text, ((WIDTH - game_over_text.get_width()) // 2 , (HEIGHT - game_over_text.get_height()) // 2))
             for event in pygame.event.get():
                 if event.type == QUIT:
                     pygame.quit()
                     sys.exit()
-                elif event.type == KEYDOWN:
-                    if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-                        waiting = False
                 elif event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        waiting = False
+                        game_state = GAME_STATE_PLAYING
+                        SPEED = 1
+                        MONEY = 10000
+                        rates = 0             
+                        all_sprites.add(P1)
+                        all_sprites.add(Y1)
+                        all_sprites.add(E1)
+                        yangbongs.add(Y1)
+                        embongs.add(E1)
+
+                elif event.type == KEYDOWN:
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                        game_state = GAME_STATE_PLAYING
+                        SPEED = 1
+                        MONEY = 10000
+                        rates = 0             
+                        all_sprites.add(P1)
+                        all_sprites.add(Y1)
+                        all_sprites.add(E1)
+                        yangbongs.add(Y1)
+                        embongs.add(E1)
 
 
+        elif game_state == GAME_STATE_WIN:
+            DISPLAYSURF.fill(RED)
+            DISPLAYSURF.blit(game_success, ((WIDTH - game_over_text.get_width()) // 2 , (HEIGHT - game_over_text.get_height()) // 2))
 
-        for event in pygame.event.get():
-            if event.type == INC_SPEED:
-                if SPEED < 40:
-                    SPEED += 1.5
-            if event.type == pygame.QUIT: # 종료 조건
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    if event.pos:
-                        x,y = event.pos
-                        if x <= WIDTH / 2 and y > 600:
-                            mouse_pressed_left = True
-                        elif x > WIDTH / 2 and y > 600:
-                            mouse_pressed_right = True
-            elif event.type == pygame.MOUSEBUTTONUP:
-                if event.button == 1:
-                    mouse_pressed_left = False
-                    mouse_pressed_right = False
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        game_state = GAME_STATE_PLAYING
+                        SPEED = 1
+                        MONEY = 10000
+                        rates = 0             
+                        all_sprites.add(P1)
+                        all_sprites.add(Y1)
+                        all_sprites.add(E1)
+                        yangbongs.add(Y1)
+                        embongs.add(E1)
 
-        if P1.rect.left > 0 and mouse_pressed_left:
-            P1.rect.move_ip(-5,0)
-        if P1.rect.right < WIDTH and mouse_pressed_right:
-            P1.rect.move_ip(5,0)            
+                elif event.type == KEYDOWN:
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                        game_state = GAME_STATE_PLAYING
+                        SPEED = 1
+                        MONEY = 10000
+                        rates = 0             
+                        all_sprites.add(P1)
+                        all_sprites.add(Y1)
+                        all_sprites.add(E1)
+                        yangbongs.add(Y1)
+                        embongs.add(E1)
 
-        if rates > 0:
-            PM = RED
-            PLUS = "+"
-        elif rates == 0:
-            PM = BLACK
-            PLUS = ""
-        else:
-            PM = BLUE
-            PLUS = ""
-
-        DISPLAYSURF.fill(WHITE)
-        current_money = font_small.render(f"ACCOUNT: ${str(round(MONEY, 2))}", True, BLACK)
-        current_rates = font_small.render(f"{PLUS}{round(rates, 2)}%", True, PM)
-        DISPLAYSURF.blit(current_money, (10,10))
-        DISPLAYSURF.blit(current_rates, (10,30))
-
-        # 모든 객체 그려주기
-        for entity in all_sprites:
-            DISPLAYSURF.blit(entity.image, entity.rect)
-            entity.move()
-        
-        # 충돌 상황 설정
-        collided_yangbong = pygame.sprite.spritecollideany(P1, yangbongs)
-        if collided_yangbong:
-            if collided_yangbong.size == "short":
-                MONEY *= 1.05
-                P_EFFECT = effect("p5", collided_yangbong.rect.x, collided_yangbong.rect.y)
-                all_sprites.add(P_EFFECT)
-            elif collided_yangbong.size == "medium":
-                MONEY *= 1.1
-                P_EFFECT = effect("p10", collided_yangbong.rect.x, collided_yangbong.rect.y)
-                all_sprites.add(P_EFFECT)
-            elif collided_yangbong.size == "long":
-                MONEY *= 1.25
-                P_EFFECT = effect("p25", collided_yangbong.rect.x, collided_yangbong.rect.y)
-                all_sprites.add(P_EFFECT)
-            else:
-                MONEY *= 1.5
-                P_EFFECT = effect("p50", collided_yangbong.rect.x, collided_yangbong.rect.y)
-                all_sprites.add(P_EFFECT)
-
-            rates = MONEY / 100 - 100
-            collided_yangbong.kill()
-            Y1 = Yangbong(size_list[random.randint(0,3)])
-            all_sprites.add(Y1)
-            yangbongs.add(Y1)
-            if rates >= 1000:
-                        
-                DISPLAYSURF.fill(RED)
-                DISPLAYSURF.blit(game_success, ((WIDTH - game_over_text.get_width()) // 2 , (HEIGHT - game_over_text.get_height()) // 2))
-                
-                pygame.display.update()
-                for entity in all_sprites:
-                        entity.kill() 
-                time.sleep(2)
-                waiting = True
-                # pygame.quit()
-                # sys.exit()
-                while waiting:
-                    for event in pygame.event.get():
-                        if event.type == QUIT:
-                            pygame.quit()
-                            sys.exit()
-                        elif event.type == MOUSEBUTTONDOWN:
-                            if event.button == 1:
-                                waiting = False
-                                SPEED = 1
-                                MONEY = 10000
-                                rates = 0             
-                                all_sprites.add(P1)
-                                all_sprites.add(Y1)
-                                all_sprites.add(E1)
-                                yangbongs.add(Y1)
-                                embongs.add(E1)
-                        elif event.type == KEYDOWN:
-                            if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-                                waiting = False
-                                SPEED = 1
-                                MONEY = 10000
-                                rates = 0             
-                                all_sprites.add(P1)
-                                all_sprites.add(Y1)
-                                all_sprites.add(E1)
-                                yangbongs.add(Y1)
-                                embongs.add(E1)           
-
-
-        collided_embong = pygame.sprite.spritecollideany(P1, embongs)
-        if collided_embong:
-            if E1.size == "short":
-                MONEY *= 0.95
-                M_EFFECT = effect("m5", collided_embong.rect.x, collided_embong.rect.y)
-                all_sprites.add(M_EFFECT)
-            elif E1.size == "medium":
-                MONEY *= 0.9
-                M_EFFECT = effect("m10", collided_embong.rect.x, collided_embong.rect.y)
-                all_sprites.add(M_EFFECT)
-            elif E1.size == "long":
-                MONEY *= 0.75
-                M_EFFECT = effect("m25", collided_embong.rect.x, collided_embong.rect.y)
-                all_sprites.add(M_EFFECT)
-            else:
-                MONEY *= 0.5
-                M_EFFECT = effect("m50", collided_embong.rect.x, collided_embong.rect.y)
-                all_sprites.add(M_EFFECT)
-
-            rates = MONEY / 100 - 100
-            
-            collided_embong.kill()
-            E1 = Embong(size_list[random.randint(0,3)])
-            all_sprites.add(E1)
-            embongs.add(E1)
-            if rates <= -95:                     
-                DISPLAYSURF.fill(RED)
-                DISPLAYSURF.blit(game_over_text, ((WIDTH - game_over_text.get_width()) // 2 , (HEIGHT - game_over_text.get_height()) // 2))
-                
-                pygame.display.update()
-                for entity in all_sprites:
-                        entity.kill() 
-                time.sleep(2)
-                waiting = True
-                # pygame.quit()
-                # sys.exit()
-                while waiting:
-                    for event in pygame.event.get():
-                        if event.type == QUIT:
-                            pygame.quit()
-                            sys.exit()
-                        elif event.type == MOUSEBUTTONDOWN:
-                            if event.button == 1:
-                                waiting = False
-                                SPEED = 1
-                                MONEY = 10000
-                                rates = 0             
-                                all_sprites.add(P1)
-                                all_sprites.add(Y1)
-                                all_sprites.add(E1)
-                                yangbongs.add(Y1)
-                                embongs.add(E1)
-
-                        elif event.type == KEYDOWN:
-                            if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-                                waiting = False
-                                SPEED = 1
-                                MONEY = 10000
-                                rates = 0             
-                                all_sprites.add(P1)
-                                all_sprites.add(Y1)
-                                all_sprites.add(E1)
-                                yangbongs.add(Y1)
-                                embongs.add(E1)
-        # 왼쪽 구역 그리기 (검은색 배경에 흰색 L)
-        pygame.draw.rect(DISPLAYSURF, BLACK, (0, divider_y, l_width, divider_height))
-        pygame.draw.rect(DISPLAYSURF, WHITE, (0, divider_y, l_width, divider_thickness))
-        l_text_rect = l_text.get_rect(center=(l_width // 2, divider_y + divider_height // 2))
-        DISPLAYSURF.blit(l_text, l_text_rect)
-
-        # 오른쪽 구역 그리기 (검은색 배경에 흰색 R)
-        r_x = l_width + divider_thickness
-        r_width = WIDTH - r_x
-        pygame.draw.rect(DISPLAYSURF, BLACK, (r_x, divider_y, r_width, divider_height))
-        pygame.draw.rect(DISPLAYSURF, WHITE, (r_x, divider_y, r_width, divider_thickness))
-        r_text_rect = r_text.get_rect(center=(r_x + r_width // 2, divider_y + divider_height // 2))
-        DISPLAYSURF.blit(r_text, r_text_rect)        
 
         pygame.display.update() # 이 함수가 호출되기 전까진 화면 변화가 일어나지 않는다.
         FPS.tick(FPS_SEC)
